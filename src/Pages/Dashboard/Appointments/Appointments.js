@@ -11,20 +11,26 @@ import Paper from '@mui/material/Paper';
 
 
 const Appointments = ({ date }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [appointments, setAppointments] = useState([])
 
     useEffect(() => {
-        const url = `http://localhost:5000/appointments?email=${user.email}&date=${date}`
-        fetch(url)
+        const url = `https://mysterious-wave-07675.herokuapp.com/appointments?email=${user.email}&date=${date.toLocaleDateString()}`
+        fetch(url, {
+            headers: {
+                'authorization': `Bearer ${token}`
+            }
+        })
             .then(res => res.json())
             .then(data => setAppointments(data));
-    }, [date])
+    }, [date, user.email, token])
+
+    // console.log(appointments);
 
 
     return (
         <TableContainer component={Paper}>
-            <Table aria-label="appointments table">
+            <Table aria-label="Appointments table">
                 <TableHead>
                     <TableRow>
                         <TableCell>Name</TableCell>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import initializeAuthentication from "../Pages/Login/Login/Firebase/firebase.init";
-import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, getIdToken } from "firebase/auth";
 
 initializeAuthentication()
 
@@ -8,6 +8,9 @@ const useFirebase = () => {
     const [user, setUser] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [authError, setAuthError] = useState('');
+    const [admin, setAdmin] = useState(false);
+    const [token, setToken] = useState('');
+
 
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
@@ -22,7 +25,7 @@ const useFirebase = () => {
                 setUser(newUser);
 
                 // save user to database
-
+                saveUser(email, name, 'POST');
 
 
                 // send name to firebase after creation
@@ -66,6 +69,13 @@ const useFirebase = () => {
         signInWithPopup(auth, provider)
             .then((result) => {
                 const user = result.user;
+
+                // save user to database
+                saveUser(user.email, user.displayName, 'PUT');
+
+                const destination = location?.state?.from || '/home';
+                history.replace(destination);
+
                 setAuthError('');
             }).catch((error) => {
                 setAuthError(error.message);
@@ -78,6 +88,11 @@ const useFirebase = () => {
         const unSubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUser(user);
+                getIdToken(user)
+                    .then(idToken => {
+                        // console.log(idToken);
+                        setToken(idToken);
+                    })
 
             } else {
                 setUser({});
@@ -85,7 +100,7 @@ const useFirebase = () => {
             setIsLoading(false);
         });
         return () => unSubscribe;
-    }, [])
+    }, [auth])
 
 
 
@@ -99,15 +114,33 @@ const useFirebase = () => {
             .finally(() => setIsLoading(false));
     }
 
-    const saveUser = (email, password) => {
 
+    const saveUser = (email, displayName, method) => {
+        const user = { email, displayName };
+        fetch('https://mysterious-wave-07675.herokuapp.com/users', {
+            method: method,
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+            .then()
     }
+
+    //    for checking is admin or not
+    useEffect(() => {
+        fetch(`https://mysterious-wave-07675.herokuapp.com/users/${user.email}`)
+            .then(res => res.json())
+            .then(data => setAdmin(data.admin))
+    }, [user.email])
 
 
     return {
         user,
         isLoading,
         authError,
+        admin,
+        token,
         registerUser,
         loginUser,
         signInWithGoogle,
